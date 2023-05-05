@@ -1,0 +1,41 @@
+name: release
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  apple-gpu-bitcode:
+    runs-on: macos-12
+    env:
+      PACKAGENAME: ncnn-test-apple-vulkan-bitcode
+    steps:
+    - run: sudo xcode-select --switch /Applications/Xcode_13.4.1.app
+    - uses: actions/checkout@v3
+
+    - name: create-xcframwork
+      run: |
+        mkdir -p ncnn-macos-vulkan
+        mkdir -p ncnn-ios-vulkan-bitcode
+        mkdir -p ncnn-ios-simulator-vulkan-bitcode
+        mkdir -p ncnn-mac-catalyst-vulkan-bitcode
+
+        unzip -q ncnn-test-macos-vulkan.zip -d ncnn-macos-vulkan
+        unzip -q ncnn-test-ios-vulkan-bitcode.zip -d ncnn-ios-vulkan-bitcode
+        unzip -q ncnn-test-ios-simulator-vulkan-bitcode.zip -d ncnn-ios-simulator-vulkan-bitcode
+        unzip -q ncnn-test-mac-catalyst-vulkan-bitcode.zip -d ncnn-mac-catalyst-vulkan-bitcode
+
+        xcodebuild -create-xcframework \
+            -framework ncnn-macos-vulkan/openmp.framework \
+            -framework ncnn-ios-vulkan-bitcode/openmp.framework \
+            -framework ncnn-ios-simulator-vulkan-bitcode/openmp.framework \
+            -framework ncnn-mac-catalyst-vulkan-bitcode/openmp.framework \
+            -output openmp.xcframework
+
+        rm -f ${{ env.PACKAGENAME }}.zip
+        zip -9 -y -r ${{ env.PACKAGENAME }}.zip openmp.xcframework
+    - name: upload-zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.PACKAGENAME }}
+        path: ${{ env.PACKAGENAME }}.zip
